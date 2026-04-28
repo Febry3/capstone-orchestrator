@@ -42,8 +42,7 @@ Frontend runtime env files:
 
 Frontend Dockerfiles in `../Kumpulin_EMS`:
 
-- `Dockerfile.staging`
-- `Dockerfile.production`
+- `Dockerfile` (multistage with `staging` and `production` targets)
 
 ## How Stage Switching Works
 
@@ -52,6 +51,7 @@ The orchestrator compose reads these variables:
 - `BACKEND_ENV_FILE`
 - `FRONTEND_ENV_FILE`
 - `FRONTEND_DOCKERFILE`
+- `FRONTEND_BUILD_TARGET`
 - `POSTGRES_PORT`
 - `REDIS_PORT`
 - `API_PORT`

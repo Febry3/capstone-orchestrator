@@ -24,7 +24,7 @@ services:
         ports:
             - "${POSTGRES_PORT:-5433}:5432"
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - postgres_data:/var/lib/postgresql
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
             interval: 10s
@@ -89,7 +89,8 @@ services:
     frontend:
         build:
             context: ../Kumpulin_EMS
-            dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile.staging}
+            dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
+            target: ${FRONTEND_BUILD_TARGET:-staging}
         restart: unless-stopped
         env_file:
             - ${FRONTEND_ENV_FILE:-./frontend.env}
