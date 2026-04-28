@@ -1,0 +1,24 @@
+# Runtime env files (secrets)
+backend.env
+frontend.env
+backend.production.env
+frontend.production.env
+.env
+.env.*
+!.env.example
+!.env.*.example
+!*.env.example
+
+# Local overrides and temp files
+docker-compose.override.yml
+*.log
+*.pid
+*.tmp
+*.swp
+*.swo
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

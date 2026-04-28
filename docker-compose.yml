@@ -1,0 +1,110 @@
+name: ${COMPOSE_PROJECT_NAME:-eventin_orchestrator}
+
+x-app-common: &app-common
+    restart: unless-stopped
+    init: true
+    env_file:
+        - ${BACKEND_ENV_FILE:-./backend.env}
+    depends_on:
+        postgres:
+            condition: service_healthy
+        redis:
+            condition: service_healthy
+    networks:
+        - orchestrator
+
+services:
+    postgres:
+        image: postgres:18-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER:-postgres}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+            POSTGRES_DB: ${POSTGRES_DB:-eventin}
+        ports:
+            - "${POSTGRES_PORT:-5433}:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        networks:
+            - orchestrator
+
+    redis:
+        image: redis:7.2-alpine
+        restart: unless-stopped
+        command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+        ports:
+            - "${REDIS_PORT:-6379}:6379"
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - orchestrator
+
+    asynqmon:
+        image: hibiken/asynqmon:latest
+        restart: unless-stopped
+        ports:
+            - "${ASYNQMON_PORT:-8083}:8080"
+        command:
+            - "--redis-addr=redis:6379"
+        depends_on:
+            redis:
+                condition: service_healthy
+        networks:
+            - orchestrator
+
+    api:
+        <<: *app-common
+        build:
+            context: ../Backend
+            dockerfile: Dockerfile
+            target: api
+        ports:
+            - "${API_PORT:-8082}:8082"
+        healthcheck:
+            test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$${APP_PORT}/health > /dev/null 2>&1 || exit 1"]
+            interval: 15s
+            timeout: 5s
+            retries: 5
+            start_period: 20s
+
+    worker:
+        <<: *app-common
+        build:
+            context: ../Backend
+            dockerfile: Dockerfile
+            target: worker
+        stop_grace_period: 20s
+
+    frontend:
+        build:
+            context: ../Kumpulin_EMS
+            dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile.staging}
+        restart: unless-stopped
+        env_file:
+            - ${FRONTEND_ENV_FILE:-./frontend.env}
+        ports:
+            - "${FRONTEND_PORT:-3000}:3000"
+        depends_on:
+            api:
+                condition: service_healthy
+        networks:
+            - orchestrator
+
+volumes:
+    postgres_data:
+    redis_data:
+
+networks:
+    orchestrator:
+        driver: bridge
