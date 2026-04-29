@@ -52,6 +52,8 @@ The orchestrator compose reads these variables:
 - `FRONTEND_ENV_FILE`
 - `FRONTEND_DOCKERFILE`
 - `FRONTEND_BUILD_TARGET`
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (frontend build arg)
+- `NEXT_PUBLIC_API_URL` (frontend build arg)
 - `POSTGRES_PORT`
 - `REDIS_PORT`
 - `API_PORT`
@@ -92,5 +94,5 @@ docker compose --env-file .env.production down
 - Real env files (`backend.env`, `frontend.env`, `backend.production.env`, `frontend.production.env`) are ignored by `.gitignore`.
 - Keep secrets in local env files only; commit `*.example` files for sharing.
 - Frontend `NEXT_PUBLIC_*` values are build-time values. For each stage, update:
-  - `D:\Koleah\Capstone (TA)\Kumpulin_EMS\.env.staging.sample`
-  - `D:\Koleah\Capstone (TA)\Kumpulin_EMS\.env.production.sample`
+  - orchestrator stage env files (`.env.staging` / `.env.production`) for build args
+  - sample files in `Kumpulin_EMS` as fallback defaults

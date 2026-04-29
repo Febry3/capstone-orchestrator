@@ -91,6 +91,9 @@ services:
             context: ../Kumpulin_EMS
             dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
             target: ${FRONTEND_BUILD_TARGET:-staging}
+            args:
+                NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+                NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
         restart: unless-stopped
         env_file:
             - ${FRONTEND_ENV_FILE:-./frontend.env}
