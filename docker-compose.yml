@@ -14,6 +14,29 @@ x-app-common: &app-common
         - orchestrator
 
 services:
+    traefik:
+        image: traefik:v3.6
+        restart: unless-stopped
+        command:
+            - --providers.docker=true
+            - --providers.docker.exposedbydefault=false
+            - --entrypoints.web.address=:80
+            - --entrypoints.websecure.address=:443
+            - --entrypoints.web.http.redirections.entrypoint.to=websecure
+            - --entrypoints.web.http.redirections.entrypoint.scheme=https
+            - --certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_ACME_EMAIL:?TRAEFIK_ACME_EMAIL must be set}
+            - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+            - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+            - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./traefik/letsencrypt:/letsencrypt
+        networks:
+            - orchestrator
+
     postgres:
         image: postgres:18-alpine
         restart: unless-stopped
@@ -26,7 +49,8 @@ services:
         volumes:
             - postgres_data:/var/lib/postgresql
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+            test:
+                ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
             interval: 10s
             timeout: 5s
             retries: 5
@@ -71,8 +95,19 @@ services:
             target: api
         ports:
             - "${API_PORT:-8082}:8082"
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.api.rule=Host(`${API_DOMAIN:?API_DOMAIN must be set}`)
+            - traefik.http.routers.api.entrypoints=websecure
+            - traefik.http.routers.api.tls=true
+            - traefik.http.routers.api.tls.certresolver=letsencrypt
+            - traefik.http.services.api.loadbalancer.server.port=8082
         healthcheck:
-            test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$${APP_PORT}/health > /dev/null 2>&1 || exit 1"]
+            test:
+                [
+                    "CMD-SHELL",
+                    "wget -q -O - http://127.0.0.1:$${APP_PORT}/health > /dev/null 2>&1 || exit 1",
+                ]
             interval: 15s
             timeout: 5s
             retries: 5
@@ -99,6 +134,13 @@ services:
             - ${FRONTEND_ENV_FILE:-./frontend.env}
         ports:
             - "${FRONTEND_PORT:-3000}:3000"
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.frontend.rule=Host(`${FRONTEND_DOMAIN:?FRONTEND_DOMAIN must be set}`)
+            - traefik.http.routers.frontend.entrypoints=websecure
+            - traefik.http.routers.frontend.tls=true
+            - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+            - traefik.http.services.frontend.loadbalancer.server.port=3000
         depends_on:
             api:
                 condition: service_healthy
