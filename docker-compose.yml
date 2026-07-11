@@ -90,7 +90,7 @@ services:
     api:
         <<: *app-common
         build:
-            context: ../Backend
+            context: ../capstone-backend
             dockerfile: Dockerfile
             target: api
         ports:
@@ -116,7 +116,7 @@ services:
     worker:
         <<: *app-common
         build:
-            context: ../Backend
+            context: ../capstone-backend
             dockerfile: Dockerfile
             target: worker
         stop_grace_period: 20s
